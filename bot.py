@@ -50,6 +50,7 @@ async def handle_voice(message: Message):
             files={"audio": ("voice.wav", wav_data, "audio/wav")},
             data={
                 "model_id": "eleven_multilingual_sts_v2",
+                "language_code": "ru",
                 "stability": 0.75,
                 "similarity_boost": 0.6,
                 "style": 0.0,
