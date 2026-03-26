@@ -89,6 +89,7 @@ async def handle_voice(message: Message):
             return
 
         text = stt_response.json().get("text", "").replace("(", "[").replace(")", "]")
+        await message.answer(f"STT: {text}")
 
         # Шаг 2: TTS v3 — синтез с голосом пользователя
         tts_response = await client.post(
@@ -113,7 +114,7 @@ async def handle_voice(message: Message):
 
 @dp.message(F.text)
 async def handle_text(message: Message):
-    await message.answer("Генерую...")
+    await message.answer("Секундочку...")
 
     async with httpx.AsyncClient(timeout=60) as client:
         tts_response = await client.post(
