@@ -53,7 +53,7 @@ async def handle_voice(message: Message):
             headers={"xi-api-key": ELEVENLABS_API_KEY},
             files={"file": ("voice.wav", wav_data, "audio/wav")},
             data={
-                "model_id": "scribe_v1",
+                "model_id": "scribe_v2",
                 "language_code": "ru",
                 "tag_audio_events": "true",
             },
