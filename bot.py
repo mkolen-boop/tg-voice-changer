@@ -89,7 +89,6 @@ async def handle_voice(message: Message):
             return
 
         text = stt_response.json().get("text", "").replace("(", "[").replace(")", "]")
-        await message.answer(f"STT: {text}")
 
         # Шаг 2: TTS v3 — синтез с голосом пользователя
         tts_response = await client.post(
@@ -121,7 +120,7 @@ async def handle_text(message: Message):
             f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}",
             headers={"xi-api-key": ELEVENLABS_API_KEY},
             json={
-                "text": message.text,
+                "text": message.text.replace("(", "[").replace(")", "]"),
                 "model_id": "eleven_v3",
                 "voice_settings": {"stability": 0.3},
             },
