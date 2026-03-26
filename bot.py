@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 import subprocess
 import tempfile
@@ -47,15 +48,19 @@ async def handle_voice(message: Message):
         response = await client.post(
             f"https://api.elevenlabs.io/v1/speech-to-speech/{VOICE_ID}",
             headers={"xi-api-key": ELEVENLABS_API_KEY},
-            files={"audio": ("voice.wav", wav_data, "audio/wav")},
+            files={
+                "audio": ("voice.wav", wav_data, "audio/wav"),
+                "voice_settings": (None, json.dumps({
+                    "stability": 0.5,
+                    "similarity_boost": 0.8,
+                    "style": 0.5,
+                    "use_speaker_boost": False,
+                }), "application/json"),
+            },
             data={
                 "model_id": "eleven_multilingual_sts_v2",
                 "language_code": "ru",
-                "stability": 0.5,
-                "similarity_boost": 0.8,
-                "style": 0.5,
                 "remove_background_noise": "true",
-                "use_speaker_boost": "false",
             },
         )
 
