@@ -12,10 +12,29 @@ from aiogram.types import Message, BufferedInputFile
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
-VOICE_ID = os.getenv("VOICE_ID", "JBFqnCBsd6RMkjVDRZzb")  # default: George
+VOICE_ID = os.getenv("VOICE_ID", "JBFqnCBsd6RMkjVDRZzb")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
+
+
+def ogg_to_wav(ogg_bytes: bytes) -> bytes:
+    with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
+        f.write(ogg_bytes)
+        ogg_path = f.name
+
+    wav_path = ogg_path.replace(".ogg", ".wav")
+    subprocess.run(
+        ["ffmpeg", "-y", "-i", ogg_path, "-ar", "44100", "-ac", "1", wav_path],
+        check=True, capture_output=True,
+    )
+
+    with open(wav_path, "rb") as f:
+        wav_data = f.read()
+
+    os.unlink(ogg_path)
+    os.unlink(wav_path)
+    return wav_data
 
 
 @dp.message(F.voice)
@@ -25,51 +44,48 @@ async def handle_voice(message: Message):
     # Скачиваем голосовуху с Telegram
     file = await bot.get_file(message.voice.file_id)
     file_bytes = await bot.download_file(file.file_path)
+    wav_data = ogg_to_wav(file_bytes.read())
 
-    # Конвертируем ogg -> wav (PCM) через ffmpeg
-    with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as ogg_file:
-        ogg_file.write(file_bytes.read())
-        ogg_path = ogg_file.name
-
-    wav_path = ogg_path.replace(".ogg", ".wav")
-    subprocess.run(
-        ["ffmpeg", "-y", "-i", ogg_path, "-ar", "44100", "-ac", "1", wav_path],
-        check=True, capture_output=True,
-    )
-
-    with open(wav_path, "rb") as wav_file:
-        wav_data = wav_file.read()
-
-    os.unlink(ogg_path)
-    os.unlink(wav_path)
-
-    # Отправляем в ElevenLabs Speech-to-Speech
     async with httpx.AsyncClient(timeout=60) as client:
-        response = await client.post(
-            f"https://api.elevenlabs.io/v1/speech-to-speech/{VOICE_ID}",
+        # Шаг 1: STT — транскрипция с тегами эмоций
+        stt_response = await client.post(
+            "https://api.elevenlabs.io/v1/speech-to-text",
             headers={"xi-api-key": ELEVENLABS_API_KEY},
-            files={
-                "audio": ("voice.wav", wav_data, "audio/wav"),
-                "voice_settings": (None, json.dumps({
-                    "stability": 0.5,
-                    "similarity_boost": 0.8,
-                    "style": 0.5,
-                    "use_speaker_boost": False,
-                }), "application/json"),
-            },
+            files={"file": ("voice.wav", wav_data, "audio/wav")},
             data={
-                "model_id": "eleven_multilingual_sts_v2",
+                "model_id": "scribe_v1",
                 "language_code": "ru",
-                "remove_background_noise": "true",
+                "tag_audio_events": "true",
             },
         )
 
-    if response.status_code != 200:
-        await message.answer(f"Ошибка ElevenLabs: {response.status_code}\n{response.text}")
-        return
+        if stt_response.status_code != 200:
+            await message.answer(f"Ошибка STT: {stt_response.status_code}\n{stt_response.text}")
+            return
 
-    # Отправляем обратно пользователю
-    audio = BufferedInputFile(response.content, filename="voice.mp3")
+        text = stt_response.json().get("text", "")
+
+        # Шаг 2: TTS v3 — синтез с голосом пользователя
+        tts_response = await client.post(
+            f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}",
+            headers={"xi-api-key": ELEVENLABS_API_KEY},
+            json={
+                "text": text,
+                "model_id": "eleven_v3",
+                "voice_settings": {
+                    "stability": 0.5,
+                    "similarity_boost": 0.8,
+                    "style": 0.0,
+                    "use_speaker_boost": True,
+                },
+            },
+        )
+
+        if tts_response.status_code != 200:
+            await message.answer(f"Ошибка TTS: {tts_response.status_code}\n{tts_response.text}")
+            return
+
+    audio = BufferedInputFile(tts_response.content, filename="voice.mp3")
     await message.answer_voice(audio)
 
 
