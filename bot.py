@@ -88,7 +88,7 @@ async def handle_voice(message: Message):
             await message.answer(f"Ошибка STT: {stt_response.status_code}\n{stt_response.text}")
             return
 
-        text = stt_response.json().get("text", "")
+        text = stt_response.json().get("text", "").replace("(", "[").replace(")", "]")
 
         # Шаг 2: TTS v3 — синтез с голосом пользователя
         tts_response = await client.post(
