@@ -82,7 +82,30 @@ async def handle_voice(message: Message):
             await message.answer(f"Ошибка TTS: {tts_response.status_code}\n{tts_response.text}")
             return
 
-    audio = BufferedInputFile(tts_response.content, filename="voice.mp3")
+    # Добавляем шум и телефонный фильтр через ffmpeg
+    with tempfile.NamedTemporaryFile(suffix=".mp3", delete=False) as f:
+        f.write(tts_response.content)
+        tts_path = f.name
+
+    out_path = tts_path.replace(".mp3", "_phone.mp3")
+    subprocess.run(
+        [
+            "ffmpeg", "-y", "-i", tts_path,
+            "-filter_complex",
+            "anoisesrc=c=white:a=0.008[noise];[0:a][noise]amix=inputs=2:duration=first,"
+            "highpass=f=300,lowpass=f=3400",
+            out_path,
+        ],
+        check=True, capture_output=True,
+    )
+
+    with open(out_path, "rb") as f:
+        final_audio = f.read()
+
+    os.unlink(tts_path)
+    os.unlink(out_path)
+
+    audio = BufferedInputFile(final_audio, filename="voice.mp3")
     await message.answer_voice(audio)
 
 
