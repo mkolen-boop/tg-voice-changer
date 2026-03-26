@@ -51,11 +51,11 @@ async def handle_voice(message: Message):
             data={
                 "model_id": "eleven_multilingual_sts_v2",
                 "language_code": "ru",
-                "stability": 0.75,
-                "similarity_boost": 0.6,
-                "style": 0.0,
+                "stability": 0.5,
+                "similarity_boost": 0.8,
+                "style": 0.5,
                 "remove_background_noise": "true",
-                "use_speaker_boost": "true",
+                "use_speaker_boost": "false",
             },
         )
 
