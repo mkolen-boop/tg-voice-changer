@@ -29,7 +29,7 @@ async def handle_voice(message: Message):
             f"https://api.elevenlabs.io/v1/speech-to-speech/{VOICE_ID}",
             headers={"xi-api-key": ELEVENLABS_API_KEY},
             files={"audio": ("voice.ogg", file_bytes.read(), "audio/ogg")},
-            data={"model_id": "eleven_english_sts_v2"},
+            data={"model_id": "eleven_multilingual_sts_v2"},
         )
 
     if response.status_code != 200:
