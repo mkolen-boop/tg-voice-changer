@@ -74,9 +74,6 @@ async def handle_voice(message: Message):
                 "model_id": "eleven_v3",
                 "voice_settings": {
                     "stability": 0.5,
-                    "similarity_boost": 0.8,
-                    "style": 0.0,
-                    "use_speaker_boost": True,
                 },
             },
         )
