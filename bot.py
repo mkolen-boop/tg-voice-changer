@@ -34,7 +34,7 @@ async def handle_voice(message: Message):
                 "stability": 0.5,
                 "similarity_boost": 0.85,
                 "style": 0.0,
-                "remove_background_noise": "true",
+                "remove_background_noise": "false",
                 "use_speaker_boost": "true",
             },
         )
