@@ -92,7 +92,7 @@ async def handle_voice(message: Message):
         [
             "ffmpeg", "-y", "-i", tts_path,
             "-filter_complex",
-            "anoisesrc=c=white:a=0.003[noise];[0:a][noise]amix=inputs=2:duration=first,"
+            "anoisesrc=c=white:a=0.001[noise];[0:a][noise]amix=inputs=2:duration=first,"
             "highpass=f=150,lowpass=f=8000",
             out_path,
         ],
