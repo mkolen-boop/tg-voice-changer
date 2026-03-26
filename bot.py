@@ -73,7 +73,7 @@ async def handle_voice(message: Message):
                 "text": text,
                 "model_id": "eleven_v3",
                 "voice_settings": {
-                    "stability": 0.5,
+                    "stability": 0.3,
                 },
             },
         )
