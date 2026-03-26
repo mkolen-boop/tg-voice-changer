@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 from aiogram import Bot, Dispatcher, F
+from aiogram.filters import Command
 from aiogram.types import Message, BufferedInputFile
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -60,6 +61,16 @@ def apply_phone_effect(mp3_bytes: bytes) -> bytes:
     os.unlink(tts_path)
     os.unlink(out_path)
     return result
+
+
+@dp.message(Command("start"))
+async def handle_start(message: Message):
+    await message.answer(
+        "Привет! Отправь голосовое или текстовоесообщение, и я изменю голос..\n\n"
+        "Можешь записать голосовое — говори естественно, с эмоциями, смехом, вздохами.\n\n"
+        "Или просто напиши текст, и я озвучу его. Можешь добавлять эмоции в скобках: "
+        "Например (Саркастично) ну да да я так и поняла, окей супер.. (вздох)"
+    )
 
 
 @dp.message(F.voice)
