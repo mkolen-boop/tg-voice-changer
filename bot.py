@@ -107,7 +107,7 @@ async def handle_voice(message: Message):
             headers={"xi-api-key": ELEVENLABS_API_KEY},
             json={
                 "text": text,
-                "model_id": "eleven_v3",
+                "model_id": "eleven_multilingual_v2",
                 "voice_settings": {
                     "stability": 0.3,
                 },
@@ -132,8 +132,14 @@ async def handle_text(message: Message):
             headers={"xi-api-key": ELEVENLABS_API_KEY},
             json={
                 "text": message.text.replace("(", "[").replace(")", "]"),
-                "model_id": "eleven_v3",
-                "voice_settings": {"stability": 0.3},
+                "model_id": "eleven_multilingual_v2",
+                "voice_settings": {
+                    "stability": 0.7,
+                    "similarity_boost": 0.13,
+                    "style": 0.45,
+                    "use_speaker_boost": False,
+                    "speed": 1.01,
+                },
             },
         )
 
