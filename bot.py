@@ -108,6 +108,7 @@ async def handle_voice(message: Message):
             json={
                 "text": text,
                 "model_id": "eleven_multilingual_v2",
+                "language_code": "ru",
                 "voice_settings": {
                     "stability": 0.4,
                     "similarity_boost": 0.83,
@@ -137,6 +138,7 @@ async def handle_text(message: Message):
             json={
                 "text": message.text.replace("(", "[").replace(")", "]"),
                 "model_id": "eleven_multilingual_v2",
+                "language_code": "ru",
                 "voice_settings": {
                     "stability": 0.4,
                     "similarity_boost": 0.83,
