@@ -109,11 +109,11 @@ async def handle_voice(message: Message):
                 "text": text,
                 "model_id": "eleven_multilingual_v2",
                 "voice_settings": {
-                    "stability": 0.5,
-                    "similarity_boost": 0.13,
-                    "style": 0.45,
+                    "stability": 0.4,
+                    "similarity_boost": 0.83,
+                    "style": 0.5,
                     "use_speaker_boost": False,
-                    "speed": 1.01,
+                    "speed": 0.95,
                 },
             },
         )
@@ -138,11 +138,11 @@ async def handle_text(message: Message):
                 "text": message.text.replace("(", "[").replace(")", "]"),
                 "model_id": "eleven_multilingual_v2",
                 "voice_settings": {
-                    "stability": 0.5,
-                    "similarity_boost": 0.13,
-                    "style": 0.45,
+                    "stability": 0.4,
+                    "similarity_boost": 0.83,
+                    "style": 0.5,
                     "use_speaker_boost": False,
-                    "speed": 1.01,
+                    "speed": 0.95,
                 },
             },
         )
