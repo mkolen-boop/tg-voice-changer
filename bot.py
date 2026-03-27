@@ -1,5 +1,4 @@
 import asyncio
-import json
 import os
 import subprocess
 import tempfile
@@ -9,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 from aiogram import Bot, Dispatcher, F
 from aiogram.filters import Command
-from aiogram.types import Message, BufferedInputFile
+from aiogram.types import Message, BufferedInputFile, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 ELEVENLABS_API_KEY = os.getenv("ELEVENLABS_API_KEY")
@@ -17,6 +16,20 @@ VOICE_ID = os.getenv("VOICE_ID", "JBFqnCBsd6RMkjVDRZzb")
 
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
+
+last_text: dict[int, str] = {}
+
+REGEN_KB = InlineKeyboardMarkup(inline_keyboard=[
+    [InlineKeyboardButton(text="🔄 Перегенерувати", callback_data="regen")]
+])
+
+VOICE_SETTINGS = {
+    "stability": 0.4,
+    "similarity_boost": 0.83,
+    "style": 0.5,
+    "use_speaker_boost": False,
+    "speed": 0.95,
+}
 
 
 def ogg_to_wav(ogg_bytes: bytes) -> bytes:
@@ -63,6 +76,32 @@ def apply_phone_effect(mp3_bytes: bytes) -> bytes:
     return result
 
 
+async def run_tts(text: str) -> httpx.Response:
+    async with httpx.AsyncClient(timeout=60) as client:
+        return await client.post(
+            f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}",
+            headers={"xi-api-key": ELEVENLABS_API_KEY},
+            json={
+                "text": text,
+                "model_id": "eleven_multilingual_v2",
+                "language_code": "ru",
+                "voice_settings": VOICE_SETTINGS,
+            },
+        )
+
+
+async def send_audio(message: Message, text: str):
+    tts_response = await run_tts(text)
+
+    if tts_response.status_code != 200:
+        await message.answer(f"Ошибка TTS: {tts_response.status_code}\n{tts_response.text}")
+        return
+
+    last_text[message.from_user.id] = text
+    audio = BufferedInputFile(apply_phone_effect(tts_response.content), filename="voice.mp3")
+    await message.answer_voice(audio, reply_markup=REGEN_KB)
+
+
 @dp.message(Command("start"))
 async def handle_start(message: Message):
     await message.answer(
@@ -77,13 +116,11 @@ async def handle_start(message: Message):
 async def handle_voice(message: Message):
     await message.answer("Конвертирую...")
 
-    # Скачиваем голосовуху с Telegram
     file = await bot.get_file(message.voice.file_id)
     file_bytes = await bot.download_file(file.file_path)
     wav_data = ogg_to_wav(file_bytes.read())
 
     async with httpx.AsyncClient(timeout=60) as client:
-        # Шаг 1: STT — транскрипция с тегами эмоций
         stt_response = await client.post(
             "https://api.elevenlabs.io/v1/speech-to-text",
             headers={"xi-api-key": ELEVENLABS_API_KEY},
@@ -101,60 +138,34 @@ async def handle_voice(message: Message):
 
         text = stt_response.json().get("text", "").replace("(", "[").replace(")", "]")
 
-        # Шаг 2: TTS v3 — синтез с голосом пользователя
-        tts_response = await client.post(
-            f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}",
-            headers={"xi-api-key": ELEVENLABS_API_KEY},
-            json={
-                "text": text,
-                "model_id": "eleven_multilingual_v2",
-                "language_code": "ru",
-                "voice_settings": {
-                    "stability": 0.4,
-                    "similarity_boost": 0.83,
-                    "style": 0.5,
-                    "use_speaker_boost": False,
-                    "speed": 0.95,
-                },
-            },
-        )
-
-        if tts_response.status_code != 200:
-            await message.answer(f"Ошибка TTS: {tts_response.status_code}\n{tts_response.text}")
-            return
-
-    audio = BufferedInputFile(apply_phone_effect(tts_response.content), filename="voice.mp3")
-    await message.answer_voice(audio)
+    await send_audio(message, text)
 
 
 @dp.message(F.text)
 async def handle_text(message: Message):
     await message.answer("Секундочку...")
+    text = message.text.replace("(", "[").replace(")", "]")
+    await send_audio(message, text)
 
-    async with httpx.AsyncClient(timeout=60) as client:
-        tts_response = await client.post(
-            f"https://api.elevenlabs.io/v1/text-to-speech/{VOICE_ID}",
-            headers={"xi-api-key": ELEVENLABS_API_KEY},
-            json={
-                "text": message.text.replace("(", "[").replace(")", "]"),
-                "model_id": "eleven_multilingual_v2",
-                "language_code": "ru",
-                "voice_settings": {
-                    "stability": 0.4,
-                    "similarity_boost": 0.83,
-                    "style": 0.5,
-                    "use_speaker_boost": False,
-                    "speed": 0.95,
-                },
-            },
-        )
+
+@dp.callback_query(F.data == "regen")
+async def handle_regen(callback: CallbackQuery):
+    text = last_text.get(callback.from_user.id)
+    if not text:
+        await callback.answer("Нет текста для перегенерации", show_alert=True)
+        return
+
+    await callback.answer()
+    await callback.message.answer("Секундочку...")
+
+    tts_response = await run_tts(text)
 
     if tts_response.status_code != 200:
-        await message.answer(f"Ошибка TTS: {tts_response.status_code}\n{tts_response.text}")
+        await callback.message.answer(f"Ошибка TTS: {tts_response.status_code}\n{tts_response.text}")
         return
 
     audio = BufferedInputFile(apply_phone_effect(tts_response.content), filename="voice.mp3")
-    await message.answer_voice(audio)
+    await callback.message.answer_voice(audio, reply_markup=REGEN_KB)
 
 
 async def main():
