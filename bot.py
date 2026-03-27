@@ -20,7 +20,7 @@ dp = Dispatcher()
 last_text: dict[int, str] = {}
 
 REGEN_KB = InlineKeyboardMarkup(inline_keyboard=[
-    [InlineKeyboardButton(text="🔄 Перегенерувати", callback_data="regen")]
+    [InlineKeyboardButton(text="🔄 Перегенерировать", callback_data="regen")]
 ])
 
 VOICE_SETTINGS = {
