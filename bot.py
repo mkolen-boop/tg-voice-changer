@@ -62,7 +62,7 @@ def apply_phone_effect(mp3_bytes: bytes) -> bytes:
             "ffmpeg", "-y", "-i", tts_path,
             "-filter_complex",
             "anoisesrc=c=white:a=0.0003[noise];[0:a][noise]amix=inputs=2:duration=first,"
-            "highpass=f=150,lowpass=f=9000,equalizer=f=1000:width_type=o:width=2:g=-3,volume=1.8",
+            "highpass=f=150,lowpass=f=9000,volume=1.8",
             out_path,
         ],
         check=True, capture_output=True,
